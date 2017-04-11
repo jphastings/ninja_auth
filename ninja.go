@@ -52,7 +52,7 @@ func init() {
   conf = &oauth2.Config{
     ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
     ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-    RedirectURL:  os.Getenv("NINJA_BASE_URL") + "/auth",
+    RedirectURL:  os.Getenv("NINJA_BASE_URL") + "/ninja_auth",
     Scopes: []string{
         "https://www.googleapis.com/auth/userinfo.email",
     },
@@ -137,5 +137,5 @@ func main() {
   router.GET("/ninja_auth", authHandler)
   router.NoRoute(proxyHandler)
 
-  router.Run(fmt.Sprintf(":%s", os.Getenv("NINJA_PORT")))
+  router.Run(fmt.Sprintf(":%s", os.Getenv("PORT")))
 }
