@@ -5,6 +5,7 @@ import (
   "encoding/base64"
   "io/ioutil"
   "fmt"
+  "log"
   "os"
   "strings"
   "net/url"
@@ -19,15 +20,8 @@ import (
 )
 
 type User struct {
-  Sub string `json:"sub"`
-  Name string `json:"name"`
-  GivenName string `json:"given_name"`
-  FamilyName string `json:"family_name"`
-  Profile string `json:"profile"`
-  Picture string `json:"picture"`
+  // Attributes of the Google response which we're interested in
   Email string `json:"email"`
-  EmailVerified string `json:"email_verified"`
-  Gender string `json:"gender"`
   HostedDomain string `json:"hd"`
 }
 
@@ -80,13 +74,14 @@ func authHandler(c *gin.Context) {
 
   retrievedState := session.Get("state")
   if retrievedState != c.Query("state") {
+    log.Printf("[Ninja] Session state code doesn't match response from Google, redirecting for re-auth.")
     c.Redirect(302, "/")
     return
   }
 
   tok, err := conf.Exchange(oauth2.NoContext, c.Query("code"))
   if err != nil {
-    // Issue with the code, try re-authing
+    log.Printf("[Ninja] Unable to exchange for token, redirecting for re-auth.")
     c.Redirect(302, "/")
     return
   }
@@ -94,6 +89,7 @@ func authHandler(c *gin.Context) {
   client := conf.Client(oauth2.NoContext, tok)
   email, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
   if err != nil {
+    log.Printf("[Ninja] User information unavailable from Google: %s", err)
     c.AbortWithError(http.StatusBadRequest, err)
     return
   }
@@ -102,13 +98,16 @@ func authHandler(c *gin.Context) {
   jsonBlob, _ := ioutil.ReadAll(email.Body)
   authedUser := User{};
   err = json.Unmarshal(jsonBlob, &authedUser)
+  session.Set("email", authedUser.Email)
   session.Set("hosted_domain", authedUser.HostedDomain)
   session.Save()
 
   if isAuthorized(session) {
+    log.Printf("[Ninja] User %s (of %s) authenticated successfully.", authedUser.Email, authedUser.HostedDomain)
     originalPath := session.Get("path").(string)
     c.Redirect(302, originalPath)
   } else {
+    log.Printf("[Ninja] User %s (of %s) authenticated but forbidden.", authedUser.Email, authedUser.HostedDomain)
     c.Status(http.StatusForbidden)
     c.Writer.Write([]byte("<h1>Soz</h1>"))
   }
@@ -119,12 +118,16 @@ func proxyHandler(c *gin.Context) {
   session := sessions.Default(c)
 
   if isAuthorized(session) {
+    log.Printf("[Ninja] Authorized request from %s being forwarded downstream.", session.Get("email"))
     proxy.ServeHTTP(c.Writer, c.Request)
   } else {
+    log.Printf("[Ninja] Unuauthorized request, redirecting through auth process.")
+
     state = randToken()
     session.Set("state", state)
     session.Set("path", c.Request.URL.String())
     session.Save()
+
     c.Redirect(302, getLoginURL(state))
   }
   return
@@ -137,5 +140,7 @@ func main() {
   router.GET("/ninja_auth", authHandler)
   router.NoRoute(proxyHandler)
 
-  router.Run(fmt.Sprintf(":%s", os.Getenv("PORT")))
+  port := os.Getenv("PORT")
+  log.Printf("[Ninja] Starting NinjaAuth reverse proxy service on port %s", port)
+  router.Run(fmt.Sprintf(":%s", port))
 }

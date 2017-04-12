@@ -28,4 +28,4 @@ Ensure you have environment variables set:
 ## Things I want to improve
 
 * Better unauthorized page (explaining why you can't view)
-* Cookies that expire after 30 days
+* Tests!
