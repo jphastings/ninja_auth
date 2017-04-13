@@ -1,0 +1,15 @@
+#!/bin/bash
+export VERSION=$(git describe --tags 2> /dev/null)
+if [[ ! -z "$VERSION" ]]; then
+  echo "Installing release dependencies"
+  go get github.com/mitchellh/go
+  go get github.com/tcnksm/ghr
+
+  echo "Building linux/amd64 binary"
+  gox -osarch "linux/amd64" -ldflags "-X main.Version=$VERSION -X main.BuildDate=$(date +%FT%T%Z)" -output "dist/ninja_auth_{{.OS}}_{{.Arch}}"
+
+  echo "Uploading artifacts to a new Github Release"
+  ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace $VERSION dist/
+else
+  echo "No tag for this commit, not releasing"
+fi
