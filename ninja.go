@@ -10,13 +10,14 @@ import (
   "strings"
   "net/url"
   "net/http"
-  "net/http/httputil"
   "encoding/json"
+
+  "golang.org/x/oauth2"
+  "golang.org/x/oauth2/google"
 
   "github.com/gin-contrib/sessions"
   "github.com/gin-gonic/gin"
-  "golang.org/x/oauth2"
-  "golang.org/x/oauth2/google"
+  "github.com/koding/websocketproxy"
 )
 
 type User struct {
@@ -33,7 +34,7 @@ var proxyHostUrl = url.URL{
   Scheme: "http",
   Host: fmt.Sprintf("127.0.0.1:%s", os.Getenv("NINJA_PROXY_PORT")),
 }
-var proxy = httputil.NewSingleHostReverseProxy(&proxyHostUrl)
+var proxy = websocketproxy.NewProxy(&proxyHostUrl)
 
 func randToken() string {
   b := make([]byte, 32)
