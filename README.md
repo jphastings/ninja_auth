@@ -1,4 +1,4 @@
-# Ninja Auth
+# Ninja Auth [![CircleCI](https://circleci.com/gh/jphastings/ninja_auth.svg?style=svg)](https://circleci.com/gh/jphastings/ninja_auth)
 
 This is a simple reverse proxy which requires authenitcation via Google OAuth and a matching _hosted_domain_ assertion from Google before allowing access to the locally hosted HTTP server behind.
 
