@@ -8,15 +8,15 @@ import (
   "log"
   "os"
   "strings"
-  "net/url"
   "net/http"
-  "net/http/httputil"
   "encoding/json"
+
+  "golang.org/x/oauth2"
+  "golang.org/x/oauth2/google"
 
   "github.com/gin-contrib/sessions"
   "github.com/gin-gonic/gin"
-  "golang.org/x/oauth2"
-  "golang.org/x/oauth2/google"
+  "github.com/jphastings/ninja_auth/lib/multiproxy"
 )
 
 type User struct {
@@ -29,11 +29,7 @@ var conf *oauth2.Config
 var state string
 var store = sessions.NewCookieStore([]byte(os.Getenv("NINJA_SECRET")))
 var acceptable_domains = strings.Split(os.Getenv("NINJA_ACCEPTABLE_DOMAINS"), ",")
-var proxyHostUrl = url.URL{
-  Scheme: "http",
-  Host: fmt.Sprintf("127.0.0.1:%s", os.Getenv("NINJA_PROXY_PORT")),
-}
-var proxy = httputil.NewSingleHostReverseProxy(&proxyHostUrl)
+var proxy = multiproxy.NewMultiProtocolSingleHostReverseProxy(fmt.Sprintf("127.0.0.1:%s", os.Getenv("NINJA_PROXY_PORT")))
 
 func randToken() string {
   b := make([]byte, 32)
